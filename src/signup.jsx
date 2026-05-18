@@ -1,11 +1,18 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../src/firebase.js";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber
+} from "firebase/auth";
+
 import axios from "axios";
+
 import signupBgMobile from "./assets/signupMobile.png";
 import signupBg from "./assets/signup.png";
+
 import "./signup.css";
+
 
 
 // ================= ICONS =================
@@ -71,12 +78,16 @@ function Signup() {
   const [localPhone, setLocalPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+
   const recaptchaVerifier = useRef(null);
 
 
-  // Full phone number
+
+  // ================= PHONE =================
+
   const phoneE164 = () => {
 
     const digits = localPhone.replace(/\D/g, "");
@@ -89,16 +100,28 @@ function Signup() {
 
 
 
-  // SEND OTP
+  // ================= SEND OTP =================
+
   const sendOTP = async () => {
 
     try {
 
+      setLoading(true);
+
       const phone = phoneE164();
+
+      if (!name.trim()) {
+
+        alert("Please enter your name");
+        setLoading(false);
+        return;
+
+      }
 
       if (!phone) {
 
-        alert("Enter valid phone number");
+        alert("Please enter valid phone number");
+        setLoading(false);
         return;
 
       }
@@ -123,11 +146,20 @@ function Signup() {
 
       setConfirmationResult(result);
 
-      alert("OTP sent");
+      alert("OTP sent successfully");
 
     } catch (error) {
 
-      console.log(error);
+      console.log("SEND OTP ERROR:", error);
+
+      alert(
+        error?.message ||
+        "Failed to send OTP"
+      );
+
+    } finally {
+
+      setLoading(false);
 
     }
 
@@ -135,14 +167,26 @@ function Signup() {
 
 
 
-  // VERIFY OTP
+  // ================= VERIFY OTP =================
+
   const verifyOTP = async () => {
 
     try {
 
+      setLoading(true);
+
       if (!confirmationResult) {
 
         alert("Please send OTP first");
+        setLoading(false);
+        return;
+
+      }
+
+      if (!otp.trim()) {
+
+        alert("Please enter OTP");
+        setLoading(false);
         return;
 
       }
@@ -150,6 +194,8 @@ function Signup() {
       const result = await confirmationResult.confirm(otp);
 
       const firebaseUID = result.user.uid;
+
+      console.log("Firebase UID:", firebaseUID);
 
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/users/register`,
@@ -160,6 +206,24 @@ function Signup() {
           preferred_language: "en"
         }
       );
+
+      console.log("REGISTER RESPONSE:", response.data);
+
+      // SAFE VALIDATION
+
+      if (!response.data) {
+
+        throw new Error("Backend returned empty response");
+
+      }
+
+      if (!response.data.user) {
+
+        throw new Error("User object missing from backend response");
+
+      }
+
+      // SAVE USER
 
       localStorage.setItem(
         "user",
@@ -172,7 +236,23 @@ function Signup() {
 
     } catch (error) {
 
-      console.log(error);
+      console.log("VERIFY OTP ERROR:", error);
+
+      if (error.response) {
+
+        console.log("BACKEND ERROR:", error.response.data);
+
+      }
+
+      alert(
+        error?.response?.data?.error ||
+        error?.message ||
+        "Signup failed"
+      );
+
+    } finally {
+
+      setLoading(false);
 
     }
 
@@ -180,13 +260,15 @@ function Signup() {
 
 
 
+  // ================= UI =================
+
   return (
 
     <div
       className="signup-page"
       style={{
         "--signup-bg": `url(${signupBg})`,
-         "--signup-bg-mobile": `url(${signupBgMobile})`
+        "--signup-bg-mobile": `url(${signupBgMobile})`
       }}
     >
 
@@ -222,7 +304,7 @@ function Signup() {
               type="text"
               placeholder="Your name"
               value={name}
-              onChange={(e)=>setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
             />
 
           </div>
@@ -238,7 +320,7 @@ function Signup() {
             <select
               className="signup-phone-row__code"
               value={countryCode}
-              onChange={(e)=>setCountryCode(e.target.value)}
+              onChange={(e) => setCountryCode(e.target.value)}
             >
 
               <option value="+91">🇮🇳 +91</option>
@@ -252,12 +334,11 @@ function Signup() {
 
             </select>
 
-
             <input
               type="tel"
               placeholder="9876543210"
               value={localPhone}
-              onChange={(e)=>setLocalPhone(e.target.value)}
+              onChange={(e) => setLocalPhone(e.target.value)}
             />
 
           </div>
@@ -269,11 +350,12 @@ function Signup() {
           <button
             className="signup-btn signup-btn--primary"
             onClick={sendOTP}
+            disabled={loading}
           >
 
             <IconPlane />
 
-            Send OTP
+            {loading ? "Sending..." : "Send OTP"}
 
           </button>
 
@@ -295,7 +377,7 @@ function Signup() {
               type="text"
               placeholder="Enter OTP"
               value={otp}
-              onChange={(e)=>setOtp(e.target.value)}
+              onChange={(e) => setOtp(e.target.value)}
             />
 
           </div>
@@ -307,11 +389,12 @@ function Signup() {
           <button
             className="signup-btn signup-btn--accent"
             onClick={verifyOTP}
+            disabled={loading}
           >
 
             <IconShieldCheck />
 
-            Verify OTP
+            {loading ? "Verifying..." : "Verify OTP"}
 
           </button>
 
@@ -325,7 +408,7 @@ function Signup() {
 
           Already have an account?{" "}
 
-          <button onClick={()=>navigate("/login")}>
+          <button onClick={() => navigate("/login")}>
             Login
           </button>
 
