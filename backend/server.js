@@ -381,9 +381,10 @@ app.post("/api/messages/send", async (req, res) => {
         ]
       );
 
+    // FIRST MESSAGE
     if (existingFriend.rows.length === 0) {
 
-      // GET SENDER INFO
+      // GET SENDER
       const senderResult =
         await pool.query(
           `
@@ -394,7 +395,7 @@ app.post("/api/messages/send", async (req, res) => {
           [sender_uid]
         );
 
-      // GET RECEIVER INFO
+      // GET RECEIVER
       const receiverResult =
         await pool.query(
           `
@@ -447,13 +448,21 @@ app.post("/api/messages/send", async (req, res) => {
         ]
       );
 
+      // REALTIME FRIEND LIST UPDATE
+      io.to(receiver_uid).emit(
+        "friend_added"
+      );
+
+      io.to(sender_uid).emit(
+        "friend_added"
+      );
+
     }
 
 
 
     /* ================= TRANSLATION ================= */
 
-    // GET RECEIVER LANGUAGE
     const receiverLanguageResult =
       await pool.query(
         `
@@ -471,7 +480,7 @@ app.post("/api/messages/send", async (req, res) => {
     let translatedMessage =
       message.message_text;
 
-    // TRANSLATE ONLY IF DIFFERENT
+    // DIFFERENT LANGUAGE
     if (
       receiverLanguage.toLowerCase() !==
       message_language.toLowerCase()
@@ -528,7 +537,7 @@ app.post("/api/messages/send", async (req, res) => {
           translatedMessage
         );
 
-        // SAVE TRANSLATION
+        // STORE TRANSLATION
         await pool.query(
           `
           INSERT INTO translated_messages
@@ -590,6 +599,8 @@ app.post("/api/messages/send", async (req, res) => {
   }
 
 });
+
+
   /* ================= GET MESSAGES ================= */
  /* ================= GET MESSAGES ================= */
 /* ================= GET MESSAGES ================= */
