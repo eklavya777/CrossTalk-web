@@ -168,95 +168,92 @@ function Signup() {
 
 
   // ================= VERIFY OTP =================
+// ================= VERIFY OTP =================
 
-  const verifyOTP = async () => {
+const verifyOTP = async () => {
 
-    try {
+  try {
 
-      setLoading(true);
+    setLoading(true);
 
-      if (!confirmationResult) {
+    if (!confirmationResult) {
 
-        alert("Please send OTP first");
-        setLoading(false);
-        return;
-
-      }
-
-      if (!otp.trim()) {
-
-        alert("Please enter OTP");
-        setLoading(false);
-        return;
-
-      }
-
-      const result = await confirmationResult.confirm(otp);
-
-      const firebaseUID = result.user.uid;
-
-      console.log("Firebase UID:", firebaseUID);
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/users/register`,
-        {
-          name: name,
-          phone: phoneE164(),
-          firebase_uid: firebaseUID,
-          preferred_language: "en"
-        }
-      );
-
-      console.log("REGISTER RESPONSE:", response.data);
-
-      // SAFE VALIDATION
-
-      if (!response.data) {
-
-        throw new Error("Backend returned empty response");
-
-      }
-
-      if (!response.data.user) {
-
-        throw new Error("User object missing from backend response");
-
-      }
-
-      // SAVE USER
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(response.data.user)
-      );
-
-      alert("Signup successful");
-
-      navigate("/chat");
-
-    } catch (error) {
-
-      console.log("VERIFY OTP ERROR:", error);
-
-      if (error.response) {
-
-        console.log("BACKEND ERROR:", error.response.data);
-
-      }
-
-      alert(
-        error?.response?.data?.error ||
-        error?.message ||
-        "Signup failed"
-      );
-
-    } finally {
-
-      setLoading(false);
+      alert("Please send OTP first");
+      return;
 
     }
 
-  };
+    if (!otp.trim()) {
+
+      alert("Please enter OTP");
+      return;
+
+    }
+
+    const result = await confirmationResult.confirm(otp);
+
+    const firebaseUID = result.user.uid;
+
+    console.log("Firebase UID:", firebaseUID);
+
+    const response = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/users/register`,
+      {
+        name: name,
+        phone: phoneE164(),
+        firebase_uid: firebaseUID,
+        preferred_language: "en"
+      }
+    );
+
+    // IMPORTANT
+    localStorage.setItem(
+      "user",
+      JSON.stringify(response.data.user)
+    );
+
+    alert("Signup successful");
+
+    navigate("/chat");
+
+  } catch (error) {
+
+    console.log("VERIFY OTP ERROR:", error);
+
+    // USER EXISTS
+    if (error.response?.status === 409) {
+
+      alert("User already exists. Please login.");
+
+      navigate("/login");
+
+      return;
+
+    }
+
+    // INVALID OTP
+    if (
+      error.code === "auth/invalid-verification-code"
+    ) {
+
+      alert("Invalid OTP");
+
+      return;
+
+    }
+
+    alert(
+      error.response?.data?.error ||
+      "Signup failed"
+    );
+
+  } finally {
+
+    setLoading(false);
+
+  }
+
+};
 
 
 

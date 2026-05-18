@@ -106,6 +106,10 @@ app.get("/", (req, res) => {
 
 /* ================= SIGNUP ================= */
 
+/* ================= SIGNUP ================= */
+
+/* ================= SIGNUP ================= */
+
 app.post("/api/users/register", async (req, res) => {
 
   try {
@@ -117,23 +121,26 @@ app.post("/api/users/register", async (req, res) => {
       preferred_language
     } = req.body;
 
+    // CHECK EXISTING USER
     const existingUser = await pool.query(
       `
       SELECT *
       FROM users
-      WHERE firebase_uid=$1
+      WHERE phone=$1
       `,
-      [firebase_uid]
+      [phone]
     );
 
+    // USER ALREADY EXISTS
     if (existingUser.rows.length > 0) {
 
-      return res.json({
-        user: existingUser.rows[0]
+      return res.status(409).json({
+        error: "User already exists. Please login."
       });
 
     }
 
+    // INSERT NEW USER
     const result = await pool.query(
       `
       INSERT INTO users
@@ -154,13 +161,15 @@ app.post("/api/users/register", async (req, res) => {
       ]
     );
 
+    // IMPORTANT
     res.json({
+      success: true,
       user: result.rows[0]
     });
 
   } catch (error) {
 
-    console.log(error);
+    console.log("SIGNUP ERROR:", error);
 
     res.status(500).json({
       error: "Signup failed"
@@ -169,7 +178,6 @@ app.post("/api/users/register", async (req, res) => {
   }
 
 });
-
 /* ================= LOGIN ================= */
 
 app.get("/api/users/login/:firebase_uid", async (req, res) => {
