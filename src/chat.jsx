@@ -38,60 +38,48 @@ function Chat() {
 
 
   // ================= REALTIME SOCKET =================
-// ================= REALTIME SOCKET =================
 
-useEffect(() => {
+  useEffect(() => {
 
-  // RECEIVE MESSAGE
-  socket.on("receive_message", (data) => {
+    // NEW MESSAGE RECEIVED
+    socket.on("receive_message", (data) => {
 
-    console.log("MESSAGE RECEIVED:", data);
+      // only append if current chat is open and message belongs to this chat
+      if (
+        selectedFriend &&
+        (
+          (
+            data.sender_uid === selectedFriend.friend_uid &&
+            data.receiver_uid === user.firebase_uid
+          )
+          ||
+          (
+            data.sender_uid === user.firebase_uid &&
+            data.receiver_uid === selectedFriend.friend_uid
+          )
+        )
+      ) {
 
-    // REFRESH FRIENDS AUTOMATICALLY
-    fetchFriends();
+        setMessages((prev) => [...prev, data]);
 
-    // AUTO SELECT NEW CHAT
-    if (
-      !selectedFriend &&
-      data.sender_uid !== user.firebase_uid
-    ) {
+      }
+
+    });
+
+    // NEW FRIEND ADDED (first message auto-add)
+    socket.on("friend_added", () => {
 
       fetchFriends();
 
-    }
+    });
 
-    // APPEND MESSAGE IF CHAT OPEN
-    if (
-      selectedFriend &&
-      (
-        data.sender_uid === selectedFriend.friend_uid ||
-        data.receiver_uid === selectedFriend.friend_uid
-      )
-    ) {
+    return () => {
+      socket.off("receive_message");
+      socket.off("friend_added");
+    };
 
-      setMessages((prev) => [...prev, data]);
+  }, [selectedFriend]);
 
-    }
-
-  });
-
-  // NEW FRIEND ADDED
-  socket.on("friend_added", () => {
-
-    console.log("FRIEND ADDED");
-
-    fetchFriends();
-
-  });
-
-  return () => {
-
-    socket.off("receive_message");
-    socket.off("friend_added");
-
-  };
-
-}, [selectedFriend]);
 
   // ================= LANGUAGE CHANGE =================
 
