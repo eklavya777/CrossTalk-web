@@ -152,7 +152,7 @@ function Signup() {
       const firebaseUID = result.user.uid;
 
       const response = await axios.post(
-        "http://localhost:5000/api/users/register",
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/register`,
         {
           name: name,
           phone: phoneE164(),

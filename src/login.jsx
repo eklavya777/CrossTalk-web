@@ -99,7 +99,7 @@ function Login() {
 
       // Check if user exists
       const userCheck = await axios.get(
-        `http://localhost:5000/api/users/check/${phone}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/check/${phone}`
       );
 
       if (!userCheck.data.exists) {
@@ -158,7 +158,7 @@ function Login() {
       const firebaseUID = result.user.uid;
 
       const response = await axios.get(
-        `http://localhost:5000/api/users/login/${firebaseUID}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/login/${firebaseUID}`
       );
 
       const userData = response.data;

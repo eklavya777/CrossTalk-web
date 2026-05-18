@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 
 import "./chat.css";
 
-const socket = io("http://localhost:5000");
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 function Chat() {
 
@@ -83,7 +83,7 @@ function Chat() {
     try {
 
       const res = await axios.get(
-        `http://localhost:5000/api/friends/${user.firebase_uid}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/friends/${user.firebase_uid}`
       );
 
       setFriends(res.data);
@@ -104,7 +104,7 @@ function Chat() {
     try {
 
       const res = await axios.get(
-        `http://localhost:5000/api/users/search/${searchPhone}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/search/${searchPhone}`
       );
 
       const friend = res.data;
@@ -117,7 +117,7 @@ function Chat() {
       }
 
       await axios.post(
-        "http://localhost:5000/api/friends/add",
+        `${import.meta.env.VITE_BACKEND_URL}/api/friends/add`,
         {
           user_uid: user.firebase_uid,
           friend_uid: friend.firebase_uid,
@@ -152,7 +152,7 @@ function Chat() {
     try {
 
       const res = await axios.get(
-        `http://localhost:5000/api/messages/${user.firebase_uid}/${friend.friend_uid}?lang=${language}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user.firebase_uid}/${friend.friend_uid}?lang=${language}`
       );
 
       setMessages(res.data);
@@ -175,7 +175,7 @@ function Chat() {
     try {
 
       await axios.post(
-        "http://localhost:5000/api/messages/send",
+        `${import.meta.env.VITE_BACKEND_URL}/api/messages/send`,
         {
           sender_uid: user.firebase_uid,
           receiver_uid: selectedFriend.friend_uid,
@@ -207,7 +207,7 @@ function Chat() {
     try {
 
       await axios.put(
-        "http://localhost:5000/api/users/language",
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/language`,
         {
           firebase_uid: user.firebase_uid,
           preferred_language: newLang
