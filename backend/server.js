@@ -1,388 +1,389 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import pg from "pg";
-import axios from "axios";
+  import express from "express";
+  import cors from "cors";
+  import dotenv from "dotenv";
+  import pg from "pg";
+  import axios from "axios";
 
-import { createServer } from "http";
-import { Server } from "socket.io";
+  import { createServer } from "http";
+  import { Server } from "socket.io";
 
-const { Pool } = pg;
+  const { Pool } = pg;
 
-dotenv.config();
+  dotenv.config();
 
-const app = express();
+  const app = express();
 
-const server = createServer(app);
+  const server = createServer(app);
 
-/* ================= SOCKET.IO ================= */
+  /* ================= SOCKET.IO ================= */
 
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST"]
-  }
-});
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.CLIENT_URL,
+      methods: ["GET", "POST"]
+    }
+  });
 
-/* ================= MIDDLEWARE ================= */
+  /* ================= MIDDLEWARE ================= */
 
-app.use(express.json());
+  app.use(express.json());
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true
-  })
-);
+  app.use(
+    cors({
+      origin: process.env.CLIENT_URL,
+      credentials: true
+    })
+  );
 
-/* ================= POSTGRES ================= */
+  /* ================= POSTGRES ================= */
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
 
-/* ================= SOCKET CONNECTION ================= */
+  /* ================= SOCKET CONNECTION ================= */
 
-io.on("connection", (socket) => {
+  io.on("connection", (socket) => {
 
-  console.log("User connected");
+    console.log("User connected");
 
-  socket.on("join", (firebase_uid) => {
+    socket.on("join", (firebase_uid) => {
 
-    socket.join(firebase_uid);
+      socket.join(firebase_uid);
 
-    console.log(`${firebase_uid} joined`);
+      console.log(`${firebase_uid} joined`);
+
+    });
+
+    socket.on("disconnect", () => {
+
+      console.log("User disconnected");
+
+    });
 
   });
 
-  socket.on("disconnect", () => {
+  /* ================= TRANSLATE FUNCTION ================= */
 
-    console.log("User disconnected");
+  async function translateText(text, targetLang) {
 
-  });
+    try {
 
-});
-
-/* ================= TRANSLATE FUNCTION ================= */
-
-async function translateText(text, targetLang) {
-
-  try {
-
-    const response = await axios.post(
-      "https://api-free.deepl.com/v2/translate",
-      null,
-      {
-        params: {
-          auth_key: process.env.DEEPL_API_KEY,
-          text: text,
-          target_lang: targetLang.toUpperCase()
+      const response = await axios.post(
+        "https://api-free.deepl.com/v2/translate",
+        null,
+        {
+          params: {
+            auth_key: process.env.DEEPL_API_KEY,
+            text: text,
+            target_lang: targetLang.toUpperCase()
+          }
         }
+      );
+
+      return response.data.translations[0].text;
+
+    } catch (error) {
+
+      console.log(error.response?.data || error.message);
+
+      return text;
+
+    }
+
+  }
+
+  /* ================= TEST ROUTE ================= */
+
+  app.get("/", (req, res) => {
+
+    res.send("CrossTalk backend running");
+
+  });
+
+  /* ================= SIGNUP ================= */
+
+  /* ================= SIGNUP ================= */
+
+  /* ================= SIGNUP ================= */
+
+  app.post("/api/users/register", async (req, res) => {
+
+    try {
+
+      const {
+        firebase_uid,
+        name,
+        phone,
+        preferred_language
+      } = req.body;
+
+      // CHECK EXISTING USER
+      const existingUser = await pool.query(
+        `
+        SELECT *
+        FROM users
+        WHERE phone=$1
+        `,
+        [phone]
+      );
+
+      // USER ALREADY EXISTS
+      if (existingUser.rows.length > 0) {
+
+        return res.status(409).json({
+          error: "User already exists. Please login."
+        });
+
       }
-    );
 
-    return response.data.translations[0].text;
+      // INSERT NEW USER
+      const result = await pool.query(
+        `
+        INSERT INTO users
+        (
+          firebase_uid,
+          name,
+          phone,
+          preferred_language
+        )
+        VALUES ($1,$2,$3,$4)
+        RETURNING *
+        `,
+        [
+          firebase_uid,
+          name,
+          phone,
+          preferred_language
+        ]
+      );
 
-  } catch (error) {
+      // IMPORTANT
+      res.json({
+        success: true,
+        user: result.rows[0]
+      });
 
-    console.log(error.response?.data || error.message);
+    } catch (error) {
 
-    return text;
+      console.log("SIGNUP ERROR:", error);
 
-  }
-
-}
-
-/* ================= TEST ROUTE ================= */
-
-app.get("/", (req, res) => {
-
-  res.send("CrossTalk backend running");
-
-});
-
-/* ================= SIGNUP ================= */
-
-/* ================= SIGNUP ================= */
-
-/* ================= SIGNUP ================= */
-
-app.post("/api/users/register", async (req, res) => {
-
-  try {
-
-    const {
-      firebase_uid,
-      name,
-      phone,
-      preferred_language
-    } = req.body;
-
-    // CHECK EXISTING USER
-    const existingUser = await pool.query(
-      `
-      SELECT *
-      FROM users
-      WHERE phone=$1
-      `,
-      [phone]
-    );
-
-    // USER ALREADY EXISTS
-    if (existingUser.rows.length > 0) {
-
-      return res.status(409).json({
-        error: "User already exists. Please login."
+      res.status(500).json({
+        error: "Signup failed"
       });
 
     }
 
-    // INSERT NEW USER
-    const result = await pool.query(
-      `
-      INSERT INTO users
-      (
-        firebase_uid,
-        name,
-        phone,
-        preferred_language
-      )
-      VALUES ($1,$2,$3,$4)
-      RETURNING *
-      `,
-      [
-        firebase_uid,
-        name,
-        phone,
-        preferred_language
-      ]
-    );
+  });
+  /* ================= LOGIN ================= */
 
-    // IMPORTANT
-    res.json({
-      success: true,
-      user: result.rows[0]
-    });
+  app.get("/api/users/login/:firebase_uid", async (req, res) => {
 
-  } catch (error) {
+    try {
 
-    console.log("SIGNUP ERROR:", error);
+      const { firebase_uid } = req.params;
 
-    res.status(500).json({
-      error: "Signup failed"
-    });
+      const result = await pool.query(
+        `
+        SELECT *
+        FROM users
+        WHERE firebase_uid=$1
+        `,
+        [firebase_uid]
+      );
 
-  }
+      if (result.rows.length === 0) {
 
-});
-/* ================= LOGIN ================= */
+        return res.status(404).json({
+          error: "User not found"
+        });
 
-app.get("/api/users/login/:firebase_uid", async (req, res) => {
+      }
 
-  try {
+      res.json(result.rows[0]);
 
-    const { firebase_uid } = req.params;
+    } catch (error) {
 
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM users
-      WHERE firebase_uid=$1
-      `,
-      [firebase_uid]
-    );
+      console.log(error);
 
-    if (result.rows.length === 0) {
-
-      return res.status(404).json({
-        error: "User not found"
+      res.status(500).json({
+        error: "Login failed"
       });
 
     }
 
-    res.json(result.rows[0]);
+  });
+  /* ================= SEARCH USER ================= */
 
-  } catch (error) {
+  app.get("/api/users/search/:phone", async (req, res) => {
 
-    console.log(error);
+    try {
 
-    res.status(500).json({
-      error: "Login failed"
-    });
+      const { phone } = req.params;
 
-  }
+      const result = await pool.query(
+        `
+        SELECT *
+        FROM users
+        WHERE phone=$1
+        `,
+        [phone]
+      );
 
-});
-/* ================= SEARCH USER ================= */
+      res.json(result.rows[0] || {});
 
-app.get("/api/users/search/:phone", async (req, res) => {
+    } catch (error) {
 
-  try {
+      console.log(error);
 
-    const { phone } = req.params;
+      res.status(500).json({
+        error: "Search failed"
+      });
 
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM users
-      WHERE phone=$1
-      `,
-      [phone]
-    );
+    }
 
-    res.json(result.rows[0] || {});
+  });
 
-  } catch (error) {
+  /* ================= ADD FRIEND ================= */
 
-    console.log(error);
+  app.post("/api/friends/add", async (req, res) => {
 
-    res.status(500).json({
-      error: "Search failed"
-    });
+    try {
 
-  }
-
-});
-
-/* ================= ADD FRIEND ================= */
-
-app.post("/api/friends/add", async (req, res) => {
-
-  try {
-
-    const {
-      user_uid,
-      friend_uid,
-      friend_name
-    } = req.body;
-
-    await pool.query(
-      `
-      INSERT INTO friends
-      (
+      const {
         user_uid,
         friend_uid,
         friend_name
-      )
-      VALUES ($1,$2,$3)
-      `,
-      [
-        user_uid,
-        friend_uid,
-        friend_name
-      ]
-    );
+      } = req.body;
 
-    res.json({
-      success: true
-    });
+      await pool.query(
+        `
+        INSERT INTO friends
+        (
+          user_uid,
+          friend_uid,
+          friend_name
+        )
+        VALUES ($1,$2,$3)
+        `,
+        [
+          user_uid,
+          friend_uid,
+          friend_name
+        ]
+      );
 
-  } catch (error) {
+      res.json({
+        success: true
+      });
 
-    console.log(error);
+    } catch (error) {
 
-    res.status(500).json({
-      error: "Add friend failed"
-    });
+      console.log(error);
 
-  }
+      res.status(500).json({
+        error: "Add friend failed"
+      });
 
-});
+    }
 
-/* ================= GET FRIENDS ================= */
+  });
 
-app.get("/api/friends/:user_uid", async (req, res) => {
+  /* ================= GET FRIENDS ================= */
 
-  try {
+  app.get("/api/friends/:user_uid", async (req, res) => {
 
-    const { user_uid } = req.params;
+    try {
 
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM friends
-      WHERE user_uid=$1
-      `,
-      [user_uid]
-    );
+      const { user_uid } = req.params;
 
-    res.json(result.rows);
+      const result = await pool.query(
+        `
+        SELECT *
+        FROM friends
+        WHERE user_uid=$1
+        `,
+        [user_uid]
+      );
 
-  } catch (error) {
+      res.json(result.rows);
 
-    console.log(error);
+    } catch (error) {
 
-    res.status(500).json({
-      error: "Fetch friends failed"
-    });
+      console.log(error);
 
-  }
+      res.status(500).json({
+        error: "Fetch friends failed"
+      });
 
-});
+    }
 
-/* ================= SEND MESSAGE ================= */
+  });
 
-app.post("/api/messages/send", async (req, res) => {
+  /* ================= SEND MESSAGE ================= */
 
-  try {
+  app.post("/api/messages/send", async (req, res) => {
 
-    const {
-      sender_uid,
-      receiver_uid,
-      message_text,
-      message_language
-    } = req.body;
+    try {
 
-    const result = await pool.query(
-      `
-      INSERT INTO messages
-      (
+      const {
         sender_uid,
         receiver_uid,
         message_text,
         message_language
-      )
-      VALUES ($1,$2,$3,$4)
-      RETURNING *
-      `,
-      [
-        sender_uid,
-        receiver_uid,
-        message_text,
-        message_language
-      ]
-    );
+      } = req.body;
 
-    const message = result.rows[0];
+      const result = await pool.query(
+        `
+        INSERT INTO messages
+        (
+          sender_uid,
+          receiver_uid,
+          message_text,
+          message_language
+        )
+        VALUES ($1,$2,$3,$4)
+        RETURNING *
+        `,
+        [
+          sender_uid,
+          receiver_uid,
+          message_text,
+          message_language
+        ]
+      );
 
-    io.to(receiver_uid).emit(
-      "receive_message",
-      message
-    );
+      const message = result.rows[0];
 
-    io.to(sender_uid).emit(
-      "receive_message",
-      message
-    );
+      io.to(receiver_uid).emit(
+        "receive_message",
+        message
+      );
 
-    res.json(message);
+      io.to(sender_uid).emit(
+        "receive_message",
+        message
+      );
 
-  } catch (error) {
+      res.json(message);
 
-    console.log(error);
+    } catch (error) {
 
-    res.status(500).json({
-      error: "Send message failed"
-    });
+      console.log(error);
 
-  }
+      res.status(500).json({
+        error: "Send message failed"
+      });
 
-});
+    }
 
-/* ================= GET MESSAGES ================= */
+  });
+
+  /* ================= GET MESSAGES ================= */
+ /* ================= GET MESSAGES ================= */
 
 app.get(
   "/api/messages/:sender_uid/:receiver_uid",
@@ -424,24 +425,109 @@ app.get(
 
           result.rows.map(async (msg) => {
 
-            if (
-              msg.message_language !== lang
-            ) {
+            try {
 
-              const translated =
-                await translateText(
-                  msg.message_text,
-                  lang
+              // SAME LANGUAGE
+              if (
+                msg.message_language.toLowerCase() ===
+                lang.toLowerCase()
+              ) {
+
+                return msg;
+
+              }
+
+              console.log("SOURCE:", msg.message_language);
+              console.log("TARGET:", lang);
+              console.log("TEXT:", msg.message_text);
+
+              // CHECK CACHE
+              const cached =
+                await pool.query(
+                  `
+                  SELECT translated_text
+                  FROM translated_messages
+                  WHERE
+                  message_id=$1
+                  AND target_language=$2
+                  `,
+                  [
+                    msg.id,
+                    lang
+                  ]
                 );
+
+              // RETURN CACHED
+              if (cached.rows.length > 0) {
+
+                return {
+                  ...msg,
+                  message_text:
+                    cached.rows[0].translated_text
+                };
+
+              }
+
+              // TRANSLATE USING DEEPL
+              const translation =
+                await axios.post(
+                  "https://api-free.deepl.com/v2/translate",
+                  null,
+                  {
+                    params: {
+                      auth_key:
+                        process.env.DEEPL_API_KEY,
+                      text: msg.message_text,
+                      source_lang:
+                        msg.message_language.toUpperCase(),
+                      target_lang:
+                        lang.toUpperCase()
+                    }
+                  }
+                );
+
+              const translatedText =
+                translation.data.translations[0].text;
+
+              console.log(
+                "TRANSLATED:",
+                translatedText
+              );
+
+              // SAVE TRANSLATION
+              await pool.query(
+                `
+                INSERT INTO translated_messages
+                (
+                  message_id,
+                  target_language,
+                  translated_text
+                )
+                VALUES ($1,$2,$3)
+                `,
+                [
+                  msg.id,
+                  lang,
+                  translatedText
+                ]
+              );
 
               return {
                 ...msg,
-                message_text: translated
+                message_text: translatedText
               };
 
-            }
+            } catch (translationError) {
 
-            return msg;
+              console.log(
+                "TRANSLATION ERROR:",
+                translationError.response?.data ||
+                translationError.message
+              );
+
+              return msg;
+
+            }
 
           })
 
@@ -461,52 +547,51 @@ app.get(
 
   }
 );
+  /* ================= UPDATE LANGUAGE ================= */
 
-/* ================= UPDATE LANGUAGE ================= */
+  app.put("/api/users/language", async (req, res) => {
 
-app.put("/api/users/language", async (req, res) => {
+    try {
 
-  try {
+      const {
+        firebase_uid,
+        preferred_language
+      } = req.body;
 
-    const {
-      firebase_uid,
-      preferred_language
-    } = req.body;
+      await pool.query(
+        `
+        UPDATE users
+        SET preferred_language=$1
+        WHERE firebase_uid=$2
+        `,
+        [
+          preferred_language,
+          firebase_uid
+        ]
+      );
 
-    await pool.query(
-      `
-      UPDATE users
-      SET preferred_language=$1
-      WHERE firebase_uid=$2
-      `,
-      [
-        preferred_language,
-        firebase_uid
-      ]
-    );
+      res.json({
+        success: true
+      });
 
-    res.json({
-      success: true
-    });
+    } catch (error) {
 
-  } catch (error) {
+      console.log(error);
 
-    console.log(error);
+      res.status(500).json({
+        error: "Language update failed"
+      });
 
-    res.status(500).json({
-      error: "Language update failed"
-    });
+    }
 
-  }
+  });
 
-});
+  /* ================= START SERVER ================= */
 
-/* ================= START SERVER ================= */
+  const PORT = process.env.PORT || 5000;
 
-const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
 
-server.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`);
 
-  console.log(`Server running on ${PORT}`);
-
-});
+  });
