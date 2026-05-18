@@ -1,0 +1,398 @@
+/* ================= GLOBAL ================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  font-family: system-ui, sans-serif;
+}
+
+
+
+/* ================= PAGE ================= */
+
+.signup-page {
+
+  position: fixed;
+  inset: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  padding: clamp(16px, 4vw, 48px);
+
+  background-color: #f5f1e9;
+
+  background-image: var(--signup-bg);
+
+  background-size: 100% 100%;
+  
+  background-position: center;
+  background-repeat: no-repeat;
+
+}
+
+
+
+/* ================= CARD ================= */
+
+.signup-chip {
+
+  width: 100%;
+  max-width: 430px;
+  margin-right: 85px;
+  padding: 36px 34px 28px;
+
+  background: rgba(255,255,255,0.92);
+
+  backdrop-filter: blur(10px);
+
+  border-radius: 24px;
+
+  box-shadow:
+    0 16px 48px rgba(26, 43, 72, 0.18);
+
+  text-align: center;
+
+  position: relative;
+  z-index: 10;
+
+}
+
+
+
+/* ================= TOP ================= */
+
+.signup-chip__top {
+  margin-bottom: 24px;
+}
+
+.signup-chip__flourish {
+
+  width: 52px;
+  height: 5px;
+
+  margin: 0 auto 16px;
+
+  border-radius: 3px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #c9a227,
+    #e8d48a,
+    #c9a227,
+    transparent
+  );
+
+}
+
+.signup-chip__title {
+
+  font-size: 32px;
+  font-weight: 800;
+
+  color: #1a2b48;
+
+  margin-bottom: 8px;
+
+}
+
+.signup-chip__subtitle {
+
+  color: #6b7280;
+
+  font-size: 15px;
+  line-height: 1.4;
+
+}
+
+
+
+/* ================= FORM ================= */
+
+.signup-chip__main {
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 14px;
+
+}
+
+
+
+/* ================= INPUT FIELD ================= */
+
+.signup-field,
+.signup-phone-row {
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 1px solid #d1d5db;
+
+  border-radius: 14px;
+
+  padding: 12px 14px;
+
+  background: #fafafa;
+
+}
+
+.signup-field input,
+.signup-phone-row input {
+
+  flex: 1;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  font-size: 15px;
+
+  color: #111827;
+
+}
+
+.signup-field input::placeholder,
+.signup-phone-row input::placeholder {
+
+  color: #9ca3af;
+
+}
+
+
+
+/* ================= COUNTRY SELECT ================= */
+
+.signup-phone-row__code {
+
+  border: none;
+
+  background: #eceff3;
+
+  padding: 8px 10px;
+
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  outline: none;
+
+  cursor: pointer;
+
+}
+
+
+
+/* ================= BUTTONS ================= */
+
+.signup-btn {
+
+  width: 100%;
+
+  border: none;
+
+  border-radius: 14px;
+
+  padding: 14px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  transition: 0.25s ease;
+
+}
+
+.signup-btn--primary {
+
+  background: #1a2b48;
+  color: white;
+
+}
+
+.signup-btn--primary:hover {
+
+  background: #243a5c;
+
+}
+
+.signup-btn--accent {
+
+  background: #966f33;
+  color: white;
+
+}
+
+.signup-btn--accent:hover {
+
+  background: #7d5d2a;
+
+}
+
+
+
+/* ================= OR ================= */
+
+.signup-or {
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  margin: 4px 0;
+
+  color: #9ca3af;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  letter-spacing: 1px;
+
+}
+
+.signup-or::before,
+.signup-or::after {
+
+  content: "";
+
+  flex: 1;
+
+  height: 1px;
+
+  background: #e5e7eb;
+
+}
+
+
+
+/* ================= FOOTER ================= */
+
+.signup-link {
+
+  margin-top: 24px;
+
+  font-size: 14px;
+
+  color: #6b7280;
+
+}
+
+.signup-link button {
+
+  border: none;
+
+  background: none;
+
+  color: #1a2b48;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  margin-left: 4px;
+
+}
+
+
+
+/* ================= RECAPTCHA ================= */
+
+.grecaptcha-badge {
+
+  pointer-events: none !important;
+  z-index: -1 !important;
+
+}
+
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 768px) {
+
+  .signup-page {
+
+    justify-content: center;
+    align-items: center;
+
+    padding: 18px;
+
+    background-image: var(--signup-bg-mobile);
+
+    background-size: cover;
+    background-position: center;
+
+  }
+
+  .signup-chip {
+
+    width: 100%;
+
+    max-width: 100%;
+
+    margin-left: 90px;
+    padding: 28px 22px;
+
+    border-radius: 20px;
+
+  }
+
+  .signup-chip__title {
+
+    font-size: 28px;
+
+  }
+
+}
+
+
+
+/* ================= SMALL MOBILE ================= */
+
+@media (max-width: 420px) {
+
+  .signup-chip {
+
+    padding: 24px 18px;
+
+  }
+
+  .signup-phone-row {
+
+    gap: 6px;
+
+  }
+
+  .signup-phone-row__code {
+
+    font-size: 13px;
+
+    padding: 6px 8px;
+
+  }
+
+}
