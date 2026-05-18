@@ -326,6 +326,7 @@
   /* ================= SEND MESSAGE ================= */
 
 /* ================= SEND MESSAGE ================= */
+/* ================= SEND MESSAGE ================= */
 
 app.post("/api/messages/send", async (req, res) => {
 
@@ -361,8 +362,99 @@ app.post("/api/messages/send", async (req, res) => {
 
     const message = result.rows[0];
 
+
+
+    /* ================= AUTO ADD FRIENDS ================= */
+
+    const existingFriend =
+      await pool.query(
+        `
+        SELECT *
+        FROM friends
+        WHERE
+        user_uid=$1
+        AND friend_uid=$2
+        `,
+        [
+          sender_uid,
+          receiver_uid
+        ]
+      );
+
+    if (existingFriend.rows.length === 0) {
+
+      // GET SENDER INFO
+      const senderResult =
+        await pool.query(
+          `
+          SELECT name
+          FROM users
+          WHERE firebase_uid=$1
+          `,
+          [sender_uid]
+        );
+
+      // GET RECEIVER INFO
+      const receiverResult =
+        await pool.query(
+          `
+          SELECT name
+          FROM users
+          WHERE firebase_uid=$1
+          `,
+          [receiver_uid]
+        );
+
+      const senderName =
+        senderResult.rows[0]?.name || "User";
+
+      const receiverName =
+        receiverResult.rows[0]?.name || "User";
+
+      // ADD RECEIVER TO SENDER
+      await pool.query(
+        `
+        INSERT INTO friends
+        (
+          user_uid,
+          friend_uid,
+          friend_name
+        )
+        VALUES ($1,$2,$3)
+        `,
+        [
+          sender_uid,
+          receiver_uid,
+          receiverName
+        ]
+      );
+
+      // ADD SENDER TO RECEIVER
+      await pool.query(
+        `
+        INSERT INTO friends
+        (
+          user_uid,
+          friend_uid,
+          friend_name
+        )
+        VALUES ($1,$2,$3)
+        `,
+        [
+          receiver_uid,
+          sender_uid,
+          senderName
+        ]
+      );
+
+    }
+
+
+
+    /* ================= TRANSLATION ================= */
+
     // GET RECEIVER LANGUAGE
-    const receiverResult =
+    const receiverLanguageResult =
       await pool.query(
         `
         SELECT preferred_language
@@ -373,13 +465,13 @@ app.post("/api/messages/send", async (req, res) => {
       );
 
     const receiverLanguage =
-      receiverResult.rows[0]
+      receiverLanguageResult.rows[0]
         ?.preferred_language || "en";
 
     let translatedMessage =
       message.message_text;
 
-    // TRANSLATE ONLY IF LANGUAGES DIFFER
+    // TRANSLATE ONLY IF DIFFERENT
     if (
       receiverLanguage.toLowerCase() !==
       message_language.toLowerCase()
@@ -436,7 +528,7 @@ app.post("/api/messages/send", async (req, res) => {
           translatedMessage
         );
 
-        // STORE TRANSLATED MESSAGE
+        // SAVE TRANSLATION
         await pool.query(
           `
           INSERT INTO translated_messages
@@ -466,7 +558,11 @@ app.post("/api/messages/send", async (req, res) => {
 
     }
 
-    // EMIT TO RECEIVER
+
+
+    /* ================= SOCKET EVENTS ================= */
+
+    // RECEIVER GETS TRANSLATED
     io.to(receiver_uid).emit(
       "receive_message",
       {
@@ -475,7 +571,7 @@ app.post("/api/messages/send", async (req, res) => {
       }
     );
 
-    // EMIT ORIGINAL TO SENDER
+    // SENDER GETS ORIGINAL
     io.to(sender_uid).emit(
       "receive_message",
       message
@@ -494,7 +590,6 @@ app.post("/api/messages/send", async (req, res) => {
   }
 
 });
-
   /* ================= GET MESSAGES ================= */
  /* ================= GET MESSAGES ================= */
 /* ================= GET MESSAGES ================= */
