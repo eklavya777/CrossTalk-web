@@ -325,65 +325,179 @@
 
   /* ================= SEND MESSAGE ================= */
 
-  app.post("/api/messages/send", async (req, res) => {
+/* ================= SEND MESSAGE ================= */
 
-    try {
+app.post("/api/messages/send", async (req, res) => {
 
-      const {
+  try {
+
+    const {
+      sender_uid,
+      receiver_uid,
+      message_text,
+      message_language
+    } = req.body;
+
+    // SAVE ORIGINAL MESSAGE
+    const result = await pool.query(
+      `
+      INSERT INTO messages
+      (
         sender_uid,
         receiver_uid,
         message_text,
         message_language
-      } = req.body;
+      )
+      VALUES ($1,$2,$3,$4)
+      RETURNING *
+      `,
+      [
+        sender_uid,
+        receiver_uid,
+        message_text,
+        message_language
+      ]
+    );
 
-      const result = await pool.query(
+    const message = result.rows[0];
+
+    // GET RECEIVER LANGUAGE
+    const receiverResult =
+      await pool.query(
         `
-        INSERT INTO messages
-        (
-          sender_uid,
-          receiver_uid,
-          message_text,
-          message_language
-        )
-        VALUES ($1,$2,$3,$4)
-        RETURNING *
+        SELECT preferred_language
+        FROM users
+        WHERE firebase_uid=$1
         `,
-        [
-          sender_uid,
-          receiver_uid,
-          message_text,
-          message_language
-        ]
+        [receiver_uid]
       );
 
-      const message = result.rows[0];
+    const receiverLanguage =
+      receiverResult.rows[0]
+        ?.preferred_language || "en";
 
-      io.to(receiver_uid).emit(
-        "receive_message",
-        message
-      );
+    let translatedMessage =
+      message.message_text;
 
-      io.to(sender_uid).emit(
-        "receive_message",
-        message
-      );
+    // TRANSLATE ONLY IF LANGUAGES DIFFER
+    if (
+      receiverLanguage.toLowerCase() !==
+      message_language.toLowerCase()
+    ) {
 
-      res.json(message);
+      try {
 
-    } catch (error) {
+        console.log(
+          "TRANSLATING:",
+          message_text
+        );
 
-      console.log(error);
+        const translation =
+          await axios.post(
 
-      res.status(500).json({
-        error: "Send message failed"
-      });
+            "https://api-free.deepl.com/v2/translate",
+
+            new URLSearchParams({
+
+              text: message_text,
+
+              source_lang:
+                message_language.toUpperCase(),
+
+              target_lang:
+                receiverLanguage.toUpperCase()
+
+            }),
+
+            {
+
+              headers: {
+
+                Authorization:
+                  `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
+
+                "Content-Type":
+                  "application/x-www-form-urlencoded"
+
+              }
+
+            }
+
+          );
+
+        translatedMessage =
+          translation
+            .data
+            .translations[0]
+            .text;
+
+        console.log(
+          "TRANSLATED:",
+          translatedMessage
+        );
+
+        // STORE TRANSLATED MESSAGE
+        await pool.query(
+          `
+          INSERT INTO translated_messages
+          (
+            message_id,
+            target_language,
+            translated_text
+          )
+          VALUES ($1,$2,$3)
+          `,
+          [
+            message.id,
+            receiverLanguage,
+            translatedMessage
+          ]
+        );
+
+      } catch (translationError) {
+
+        console.log(
+          "TRANSLATION ERROR:",
+          translationError.response?.data ||
+          translationError.message
+        );
+
+      }
 
     }
 
-  });
+    // EMIT TO RECEIVER
+    io.to(receiver_uid).emit(
+      "receive_message",
+      {
+        ...message,
+        message_text: translatedMessage
+      }
+    );
+
+    // EMIT ORIGINAL TO SENDER
+    io.to(sender_uid).emit(
+      "receive_message",
+      message
+    );
+
+    res.json(message);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      error: "Send message failed"
+    });
+
+  }
+
+});
 
   /* ================= GET MESSAGES ================= */
  /* ================= GET MESSAGES ================= */
+/* ================= GET MESSAGES ================= */
 
 app.get(
   "/api/messages/:sender_uid/:receiver_uid",
@@ -437,11 +551,22 @@ app.get(
 
               }
 
-              console.log("SOURCE:", msg.message_language);
-              console.log("TARGET:", lang);
-              console.log("TEXT:", msg.message_text);
+              console.log(
+                "SOURCE:",
+                msg.message_language
+              );
 
-              // CHECK CACHE
+              console.log(
+                "TARGET:",
+                lang
+              );
+
+              console.log(
+                "TEXT:",
+                msg.message_text
+              );
+
+              // CHECK CACHE FIRST
               const cached =
                 await pool.query(
                   `
@@ -457,8 +582,12 @@ app.get(
                   ]
                 );
 
-              // RETURN CACHED
+              // RETURN CACHED VERSION
               if (cached.rows.length > 0) {
+
+                console.log(
+                  "USING CACHED TRANSLATION"
+                );
 
                 return {
                   ...msg,
@@ -468,33 +597,53 @@ app.get(
 
               }
 
-              // TRANSLATE USING DEEPL
+              // DEEPL TRANSLATION
               const translation =
                 await axios.post(
+
                   "https://api-free.deepl.com/v2/translate",
-                  null,
+
+                  new URLSearchParams({
+
+                    text:
+                      msg.message_text,
+
+                    source_lang:
+                      msg.message_language.toUpperCase(),
+
+                    target_lang:
+                      lang.toUpperCase()
+
+                  }),
+
                   {
-                    params: {
-                      auth_key:
-                        process.env.DEEPL_API_KEY,
-                      text: msg.message_text,
-                      source_lang:
-                        msg.message_language.toUpperCase(),
-                      target_lang:
-                        lang.toUpperCase()
+
+                    headers: {
+
+                      Authorization:
+                        `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
+
+                      "Content-Type":
+                        "application/x-www-form-urlencoded"
+
                     }
+
                   }
+
                 );
 
               const translatedText =
-                translation.data.translations[0].text;
+                translation
+                  .data
+                  .translations[0]
+                  .text;
 
               console.log(
                 "TRANSLATED:",
                 translatedText
               );
 
-              // SAVE TRANSLATION
+              // SAVE TO CACHE TABLE
               await pool.query(
                 `
                 INSERT INTO translated_messages
