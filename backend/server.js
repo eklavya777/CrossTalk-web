@@ -106,7 +106,7 @@ app.get("/", (req, res) => {
 
 /* ================= SIGNUP ================= */
 
-app.post("/api/users/signup", async (req, res) => {
+app.post("/api/users/register", async (req, res) => {
 
   try {
 
