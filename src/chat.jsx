@@ -39,6 +39,7 @@ function Chat() {
 
   // ================= REALTIME SOCKET =================
 // ================= REALTIME SOCKET =================
+// ================= REALTIME SOCKET =================
 
 useEffect(() => {
 
@@ -47,35 +48,41 @@ useEffect(() => {
 
     console.log("MESSAGE RECEIVED:", data);
 
-    // REFRESH FRIENDS AUTOMATICALLY
+    // REFRESH FRIEND LIST
     fetchFriends();
 
-    // AUTO SELECT NEW CHAT
-    if (
-      !selectedFriend &&
-      data.sender_uid !== user.firebase_uid
-    ) {
+    // IF NO CHAT OPEN
+    if (!selectedFriend) {
 
-      fetchFriends();
+      return;
 
     }
 
-    // APPEND MESSAGE IF CHAT OPEN
+    // CURRENT OPEN CHAT
+    const currentChatUser =
+      selectedFriend.friend_uid;
+
+    // APPEND MESSAGE ONLY FOR CURRENT CHAT
     if (
-      selectedFriend &&
-      (
-        data.sender_uid === selectedFriend.friend_uid ||
-        data.receiver_uid === selectedFriend.friend_uid
-      )
+
+      data.sender_uid === currentChatUser ||
+
+      data.receiver_uid === currentChatUser
+
     ) {
 
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => [
+
+        ...prev,
+        data
+
+      ]);
 
     }
 
   });
 
-  // NEW FRIEND ADDED
+  // FRIEND ADDED EVENT
   socket.on("friend_added", () => {
 
     console.log("FRIEND ADDED");
@@ -195,35 +202,37 @@ useEffect(() => {
 
 
   // ================= SEND MESSAGE =================
+// ================= SEND MESSAGE =================
 
-  const sendMessage = async () => {
+const sendMessage = async () => {
 
-    if (!message || !selectedFriend) return;
+  if (!message.trim() || !selectedFriend) {
 
-    try {
+    return;
 
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/messages/send`,
-        {
-          sender_uid: user.firebase_uid,
-          receiver_uid: selectedFriend.friend_uid,
-          message_text: message,
-          message_language: language,
-        }
-      );
+  }
 
-      setMessage("");
+  try {
 
-      // reload sender messages properly
-      await openChat(selectedFriend);
+    await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/messages/send`,
+      {
+        sender_uid: user.firebase_uid,
+        receiver_uid: selectedFriend.friend_uid,
+        message_text: message,
+        message_language: language,
+      }
+    );
 
-    } catch (error) {
+    setMessage("");
 
-      console.log(error);
+  } catch (error) {
 
-    }
+    console.log(error);
 
-  };
+  }
+
+};
 
 
   // ================= CHANGE LANGUAGE =================
