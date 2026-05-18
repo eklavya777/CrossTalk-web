@@ -1,13 +1,18 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../src/firebase.js";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber
+} from "firebase/auth";
+
 import axios from "axios";
 
 import loginBg from "./assets/signup.png";
 import loginMobileBg from "./assets/signupMobile.png";
 
 import "./login.css";
+
 
 
 // ================= ICONS =================
@@ -72,12 +77,16 @@ function Login() {
   const [localPhone, setLocalPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+
   const recaptchaVerifier = useRef(null);
 
 
-  // Full phone
+
+  // ================= PHONE =================
+
   const phoneE164 = () => {
 
     const digits = localPhone.replace(/\D/g, "");
@@ -90,24 +99,37 @@ function Login() {
 
 
 
-  // SEND OTP
+  // ================= SEND OTP =================
+
   const sendOTP = async () => {
 
     try {
 
+      setLoading(true);
+
       const phone = phoneE164();
 
-      // Check if user exists
+      if (!phone) {
+
+        alert("Enter valid phone number");
+        return;
+
+      }
+
+      // CHECK USER
+
       const userCheck = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/users/check/${phone}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/users/search/${phone}`
       );
 
-      if (!userCheck.data.exists) {
+      if (!userCheck.data?.firebase_uid) {
 
         alert("User not registered. Please signup first.");
         return;
 
       }
+
+      // RECAPTCHA
 
       if (!recaptchaVerifier.current) {
 
@@ -121,6 +143,8 @@ function Login() {
 
       }
 
+      // SEND OTP
+
       const result = await signInWithPhoneNumber(
         auth,
         phone,
@@ -133,7 +157,17 @@ function Login() {
 
     } catch (error) {
 
-      console.log(error);
+      console.log("SEND OTP ERROR:", error);
+
+      alert(
+        error?.response?.data?.error ||
+        error?.message ||
+        "Failed to send OTP"
+      );
+
+    } finally {
+
+      setLoading(false);
 
     }
 
@@ -141,10 +175,13 @@ function Login() {
 
 
 
-  // VERIFY OTP
+  // ================= VERIFY OTP =================
+
   const verifyOTP = async () => {
 
     try {
+
+      setLoading(true);
 
       if (!confirmationResult) {
 
@@ -161,11 +198,9 @@ function Login() {
         `${import.meta.env.VITE_BACKEND_URL}/api/users/login/${firebaseUID}`
       );
 
-      const userData = response.data;
-
       localStorage.setItem(
         "user",
-        JSON.stringify(userData)
+        JSON.stringify(response.data)
       );
 
       alert("Login successful");
@@ -174,13 +209,25 @@ function Login() {
 
     } catch (error) {
 
-      console.log(error);
+      console.log("VERIFY OTP ERROR:", error);
+
+      alert(
+        error?.response?.data?.error ||
+        error?.message ||
+        "Login failed"
+      );
+
+    } finally {
+
+      setLoading(false);
 
     }
 
   };
 
 
+
+  // ================= UI =================
 
   return (
 
@@ -191,8 +238,6 @@ function Login() {
         "--login-bg-mobile": `url(${loginMobileBg})`
       }}
     >
-
-      {/* LOGIN CARD */}
 
       <div className="login-chip">
 
@@ -233,7 +278,6 @@ function Login() {
 
           </select>
 
-
           <input
             type="tel"
             placeholder="9876543210"
@@ -250,11 +294,12 @@ function Login() {
         <button
           className="login-btn login-btn--primary"
           onClick={sendOTP}
+          disabled={loading}
         >
 
           <IconPlane />
 
-          Send OTP
+          {loading ? "Sending..." : "Send OTP"}
 
         </button>
 
@@ -288,11 +333,12 @@ function Login() {
         <button
           className="login-btn login-btn--accent"
           onClick={verifyOTP}
+          disabled={loading}
         >
 
           <IconShieldCheck />
 
-          Verify OTP
+          {loading ? "Verifying..." : "Verify OTP"}
 
         </button>
 
@@ -325,6 +371,8 @@ function Login() {
         </p>
 
 
+
+        {/* RECAPTCHA */}
 
         <div
           id="recaptcha-container"

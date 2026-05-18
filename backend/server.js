@@ -117,6 +117,23 @@ app.post("/api/users/register", async (req, res) => {
       preferred_language
     } = req.body;
 
+    const existingUser = await pool.query(
+      `
+      SELECT *
+      FROM users
+      WHERE firebase_uid=$1
+      `,
+      [firebase_uid]
+    );
+
+    if (existingUser.rows.length > 0) {
+
+      return res.json({
+        user: existingUser.rows[0]
+      });
+
+    }
+
     const result = await pool.query(
       `
       INSERT INTO users
@@ -137,7 +154,9 @@ app.post("/api/users/register", async (req, res) => {
       ]
     );
 
-    res.json(result.rows[0]);
+    res.json({
+      user: result.rows[0]
+    });
 
   } catch (error) {
 
@@ -168,6 +187,14 @@ app.get("/api/users/login/:firebase_uid", async (req, res) => {
       [firebase_uid]
     );
 
+    if (result.rows.length === 0) {
+
+      return res.status(404).json({
+        error: "User not found"
+      });
+
+    }
+
     res.json(result.rows[0]);
 
   } catch (error) {
@@ -181,7 +208,6 @@ app.get("/api/users/login/:firebase_uid", async (req, res) => {
   }
 
 });
-
 /* ================= SEARCH USER ================= */
 
 app.get("/api/users/search/:phone", async (req, res) => {
