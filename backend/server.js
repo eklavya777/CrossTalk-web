@@ -249,15 +249,31 @@
 
   /* ================= ADD FRIEND ================= */
 
-  app.post("/api/friends/add", async (req, res) => {
+  /* ================= ADD FRIEND ================= */
 
-    try {
+app.post("/api/friends/add", async (req, res) => {
 
-      const {
-        user_uid,
-        friend_uid,
-        friend_name
-      } = req.body;
+  try {
+
+    const {
+      user_uid,
+      friend_uid,
+      friend_name,
+      user_name
+    } = req.body;
+
+    // CHECK IF ALREADY EXISTS
+    const existing1 = await pool.query(
+      `
+      SELECT *
+      FROM friends
+      WHERE user_uid=$1
+      AND friend_uid=$2
+      `,
+      [user_uid, friend_uid]
+    );
+
+    if (existing1.rows.length === 0) {
 
       await pool.query(
         `
@@ -276,21 +292,55 @@
         ]
       );
 
-      res.json({
-        success: true
-      });
+    }
 
-    } catch (error) {
+    // REVERSE ENTRY
+    const existing2 = await pool.query(
+      `
+      SELECT *
+      FROM friends
+      WHERE user_uid=$1
+      AND friend_uid=$2
+      `,
+      [friend_uid, user_uid]
+    );
 
-      console.log(error);
+    if (existing2.rows.length === 0) {
 
-      res.status(500).json({
-        error: "Add friend failed"
-      });
+      await pool.query(
+        `
+        INSERT INTO friends
+        (
+          user_uid,
+          friend_uid,
+          friend_name
+        )
+        VALUES ($1,$2,$3)
+        `,
+        [
+          friend_uid,
+          user_uid,
+          user_name
+        ]
+      );
 
     }
 
-  });
+    res.json({
+      success: true
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      error: "Add friend failed"
+    });
+
+  }
+
+});
 
   /* ================= GET FRIENDS ================= */
 
@@ -325,8 +375,6 @@
 
   /* ================= SEND MESSAGE ================= */
 
-/* ================= SEND MESSAGE ================= */
-/* ================= SEND MESSAGE ================= */
 
 app.post("/api/messages/send", async (req, res) => {
 
@@ -362,108 +410,8 @@ app.post("/api/messages/send", async (req, res) => {
 
     const message = result.rows[0];
 
-
-
-    /* ================= AUTO ADD FRIENDS ================= */
-
-    const existingFriend =
-      await pool.query(
-        `
-        SELECT *
-        FROM friends
-        WHERE
-        user_uid=$1
-        AND friend_uid=$2
-        `,
-        [
-          sender_uid,
-          receiver_uid
-        ]
-      );
-
-    // FIRST MESSAGE
-    if (existingFriend.rows.length === 0) {
-
-      // GET SENDER
-      const senderResult =
-        await pool.query(
-          `
-          SELECT name
-          FROM users
-          WHERE firebase_uid=$1
-          `,
-          [sender_uid]
-        );
-
-      // GET RECEIVER
-      const receiverResult =
-        await pool.query(
-          `
-          SELECT name
-          FROM users
-          WHERE firebase_uid=$1
-          `,
-          [receiver_uid]
-        );
-
-      const senderName =
-        senderResult.rows[0]?.name || "User";
-
-      const receiverName =
-        receiverResult.rows[0]?.name || "User";
-
-      // ADD RECEIVER TO SENDER
-      await pool.query(
-        `
-        INSERT INTO friends
-        (
-          user_uid,
-          friend_uid,
-          friend_name
-        )
-        VALUES ($1,$2,$3)
-        `,
-        [
-          sender_uid,
-          receiver_uid,
-          receiverName
-        ]
-      );
-
-      // ADD SENDER TO RECEIVER
-      await pool.query(
-        `
-        INSERT INTO friends
-        (
-          user_uid,
-          friend_uid,
-          friend_name
-        )
-        VALUES ($1,$2,$3)
-        `,
-        [
-          receiver_uid,
-          sender_uid,
-          senderName
-        ]
-      );
-
-      // REALTIME FRIEND LIST UPDATE
-      io.to(receiver_uid).emit(
-        "friend_added"
-      );
-
-      io.to(sender_uid).emit(
-        "friend_added"
-      );
-
-    }
-
-
-
-    /* ================= TRANSLATION ================= */
-
-    const receiverLanguageResult =
+    // GET RECEIVER LANGUAGE
+    const receiverResult =
       await pool.query(
         `
         SELECT preferred_language
@@ -474,13 +422,13 @@ app.post("/api/messages/send", async (req, res) => {
       );
 
     const receiverLanguage =
-      receiverLanguageResult.rows[0]
+      receiverResult.rows[0]
         ?.preferred_language || "en";
 
     let translatedMessage =
       message.message_text;
 
-    // DIFFERENT LANGUAGE
+    // TRANSLATE ONLY IF LANGUAGES DIFFER
     if (
       receiverLanguage.toLowerCase() !==
       message_language.toLowerCase()
@@ -537,7 +485,7 @@ app.post("/api/messages/send", async (req, res) => {
           translatedMessage
         );
 
-        // STORE TRANSLATION
+        // STORE TRANSLATED MESSAGE
         await pool.query(
           `
           INSERT INTO translated_messages
@@ -567,11 +515,7 @@ app.post("/api/messages/send", async (req, res) => {
 
     }
 
-
-
-    /* ================= SOCKET EVENTS ================= */
-
-    // RECEIVER GETS TRANSLATED
+    // EMIT TO RECEIVER
     io.to(receiver_uid).emit(
       "receive_message",
       {
@@ -580,7 +524,7 @@ app.post("/api/messages/send", async (req, res) => {
       }
     );
 
-    // SENDER GETS ORIGINAL
+    // EMIT ORIGINAL TO SENDER
     io.to(sender_uid).emit(
       "receive_message",
       message
@@ -599,7 +543,6 @@ app.post("/api/messages/send", async (req, res) => {
   }
 
 });
-
 
   /* ================= GET MESSAGES ================= */
  /* ================= GET MESSAGES ================= */

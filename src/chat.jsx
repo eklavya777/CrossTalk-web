@@ -156,7 +156,8 @@ useEffect(() => {
         {
           user_uid: user.firebase_uid,
           friend_uid: friend.firebase_uid,
-          friend_name: friend.name
+          friend_name: friend.name,
+          user_name: user.name
         }
       );
 
