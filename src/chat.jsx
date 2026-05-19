@@ -154,10 +154,10 @@ useEffect(() => {
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/friends/add`,
         {
-          user_uid: user.firebase_uid,
-    friend_uid: searchedUser.firebase_uid,
-    friend_name: searchedUser.name,
-    user_name: user.name 
+             user_uid: user.firebase_uid,
+          friend_uid: friend.firebase_uid,
+          friend_name: friend.name,
+          user_name: user.name
         }
       );
 
@@ -389,13 +389,7 @@ const sendMessage = async () => {
 
           {/* LANGUAGE SELECTOR */}
 
-          <select
-            className="language-select"
-            value={language}
-            onChange={(e)=>changeLanguage(e.target.value)}
-          >
-
-            <select
+         <select
   className="language-select"
   value={language}
   onChange={(e)=>changeLanguage(e.target.value)}
@@ -417,8 +411,6 @@ const sendMessage = async () => {
   <option value="ar">Arabic</option>
 
 </select>
-
-          </select>
 
         </div>
 
