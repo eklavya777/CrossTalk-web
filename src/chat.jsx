@@ -155,9 +155,9 @@ useEffect(() => {
         `${import.meta.env.VITE_BACKEND_URL}/api/friends/add`,
         {
           user_uid: user.firebase_uid,
-          friend_uid: friend.firebase_uid,
-          friend_name: friend.name,
-          user_name: user.name
+    friend_uid: searchedUser.firebase_uid,
+    friend_name: searchedUser.name,
+    user_name: user.name 
         }
       );
 
@@ -273,15 +273,23 @@ const sendMessage = async () => {
 
   return (
 
-    <div className="chat-container">
+   <div
+  className="chat-container"
+  style={{
+    height: "100dvh"
+  }}
+>
 
       {/* ================= SIDEBAR ================= */}
 
-      <div
-        className={`sidebar ${
-          showMobileChat ? "hide-mobile" : ""
-        }`}
-      >
+   <div
+  className={`sidebar ${
+    showMobileChat ? "hide-mobile" : ""
+  }`}
+  style={{
+    height: "100dvh"
+  }}
+>
 
         <div className="sidebar-header">
           <h3>{user.name}</h3>
@@ -338,13 +346,14 @@ const sendMessage = async () => {
 
 
       {/* ================= CHAT WINDOW ================= */}
-
-      <div
-        className={`chat-window ${
-          showMobileChat ? "show-mobile-chat" : ""
-        }`}
-      >
-
+<div
+  className={`chat-window ${
+    showMobileChat ? "show-mobile-chat" : ""
+  }`}
+  style={{
+    height: "100dvh"
+  }}
+>
 
         {/* ================= TOP HEADER ================= */}
 
