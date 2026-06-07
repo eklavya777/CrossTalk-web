@@ -1,16 +1,14 @@
-# React + Vite
+CrossTalk multilingual chat application -
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Built CrossTalk, a real-time multilingual chat platform featuring instant message translation, OTP-based phone authentication, friend management, and live messaging. Developed using React.js, Node.js, Socket.IO, DeepL API, Firebase Authentication, PostgreSQL (Neon), Vercel, and Render.
 
-Currently, two official plugins are available:
+live demo : https://cross-talk-web-chfs.vercel.app/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Some screenshots of CrossTalk : 
 
-## React Compiler
+Signup page : <img width="1920" height="895" alt="Screenshot (257)" src="https://github.com/user-attachments/assets/43b76046-172f-41b0-b67b-3e6a97c93ad2" />
+Login page : <img width="1920" height="903" alt="Screenshot (258)" src="https://github.com/user-attachments/assets/189df1c7-c56f-40fe-b897-5795b3e4818d" />
+Chat page : <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/184e4c24-9ab1-4168-8b0e-471520c6443d" />
+<img width="1920" height="1080" alt="Screenshot (260)" src="https://github.com/user-attachments/assets/cd481e18-e0b2-45d7-8ce4-1daad5e68b83" />
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
