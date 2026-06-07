@@ -362,11 +362,17 @@
   
   /* ================= RECAPTCHA ================= */
   
+  #recaptcha-container {
+    min-height: 1px;
+  }
+
+  .login-recaptcha {
+    margin-top: 8px;
+  }
+
   .grecaptcha-badge {
-  
-    pointer-events: none !important;
-    z-index: -1 !important;
-  
+    visibility: hidden !important;
+    opacity: 0 !important;
   }
   
   

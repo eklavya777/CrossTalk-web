@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { auth } from "../src/firebase.js";
 import {
   RecaptchaVerifier,
@@ -394,6 +394,19 @@ const verifyOTP = async () => {
             {loading ? "Verifying..." : "Verify OTP"}
 
           </button>
+
+          <p className="signup-legal">
+            By continuing, you agree to CrossTalk's
+            <br />
+            <Link to="/privacy-policy">
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link to="/terms-and-conditions">
+              Terms and Conditions
+            </Link>
+            .
+          </p>
 
         </div>
 
