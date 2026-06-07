@@ -8,7 +8,8 @@ Some screenshots of CrossTalk :
 
 Signup page : <img width="1920" height="895" alt="Screenshot (257)" src="https://github.com/user-attachments/assets/43b76046-172f-41b0-b67b-3e6a97c93ad2" />
 Login page : <img width="1920" height="903" alt="Screenshot (258)" src="https://github.com/user-attachments/assets/189df1c7-c56f-40fe-b897-5795b3e4818d" />
-Chat page : <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/184e4c24-9ab1-4168-8b0e-471520c6443d" />
-<img width="1920" height="1080" alt="Screenshot (260)" src="https://github.com/user-attachments/assets/cd481e18-e0b2-45d7-8ce4-1daad5e68b83" />
+Chat page : <img width="1920" height="899" alt="Screenshot (259)" src="https://github.com/user-attachments/assets/ee6f4e7b-c194-42ef-b4cb-2b963710e72e" />
+<img width="1920" height="903" alt="Screenshot (260)" src="https://github.com/user-attachments/assets/0ae959f3-d6c1-41b1-984a-7410fc17ecce" />
+
 
 
